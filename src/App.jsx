@@ -1,10 +1,14 @@
 import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
-  return (
+  const token = localStorage.getItem("admin_token");
+  return token ? (
     <ProtectedRoute>
-      <Login />
+      <Dashboard />
     </ProtectedRoute>
+  ) : (
+    <Login />
   );
 }
