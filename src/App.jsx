@@ -11,17 +11,23 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
 
-        <Route path="/" element={
-          <ProtectedRoute>
-            <Layout><Dashboard /></Layout>
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Layout><Dashboard /></Layout>
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/sites" element={
-          <ProtectedRoute>
-            <Layout><Sites /></Layout>
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/sites"
+          element={
+            <ProtectedRoute>
+              <Layout><Sites /></Layout>
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
