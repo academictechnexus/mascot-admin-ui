@@ -5,15 +5,16 @@ export default function Sites() {
   const [sites, setSites] = useState([]);
 
   useEffect(() => {
-    adminFetch("/sites").then(data => {
-      if (Array.isArray(data)) setSites(data);
+    adminFetch("/sites").then(res => {
+      if (Array.isArray(res)) {
+        setSites(res);
+      }
     });
   }, []);
 
   return (
     <div>
       <h1>Sites</h1>
-      <p>Manage domains and plans</p>
 
       <table border="1" cellPadding="8">
         <thead>
