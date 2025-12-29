@@ -5,20 +5,19 @@ export default function Sites() {
   const [sites, setSites] = useState([]);
 
   useEffect(() => {
-    adminFetch("/sites").then(setSites);
+    adminFetch("/sites").then(data => {
+      if (Array.isArray(data)) setSites(data);
+    });
   }, []);
 
   return (
-    <>
+    <div>
       <h1>Sites</h1>
-      <p style={{ color: "#475569" }}>
-        Manage domains, plans, and quotas
-      </p>
+      <p>Manage domains and plans</p>
 
-      <table width="100%" cellPadding="12"
-        style={{ background: "#fff", marginTop: 20, borderRadius: 8 }}>
+      <table border="1" cellPadding="8">
         <thead>
-          <tr style={{ textAlign: "left", color: "#475569" }}>
+          <tr>
             <th>Name</th>
             <th>Domain</th>
             <th>Plan</th>
@@ -27,17 +26,17 @@ export default function Sites() {
           </tr>
         </thead>
         <tbody>
-          {sites?.map(s => (
-            <tr key={s.id}>
-              <td>{s.name}</td>
-              <td>{s.domain}</td>
-              <td>{s.plan}</td>
-              <td>{s.daily_quota}</td>
-              <td>{s.status}</td>
+          {sites.map(site => (
+            <tr key={site.id}>
+              <td>{site.name}</td>
+              <td>{site.domain}</td>
+              <td>{site.plan}</td>
+              <td>{site.daily_quota}</td>
+              <td>{site.status}</td>
             </tr>
           ))}
         </tbody>
       </table>
-    </>
+    </div>
   );
 }
