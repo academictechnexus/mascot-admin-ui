@@ -1,9 +1,9 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Sites from "./pages/Sites";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Layout from "./components/Layout";
 
 export default function App() {
   return (
@@ -15,7 +15,9 @@ export default function App() {
           path="/"
           element={
             <ProtectedRoute>
-              <Layout><Dashboard /></Layout>
+              <Layout>
+                <Dashboard />
+              </Layout>
             </ProtectedRoute>
           }
         />
@@ -24,7 +26,9 @@ export default function App() {
           path="/sites"
           element={
             <ProtectedRoute>
-              <Layout><Sites /></Layout>
+              <Layout>
+                <Sites />
+              </Layout>
             </ProtectedRoute>
           }
         />
