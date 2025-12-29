@@ -1,55 +1,42 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { loginAdmin } from "../api/adminApi";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  async function handleSubmit(e) {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
-    const data = await loginAdmin(username, password);
-
-    if (data?.token) {
-      localStorage.setItem("admin_token", data.token);
-      window.location.href = "/";
-    } else {
-      setError("Invalid username or password");
+    try {
+      await loginAdmin(username, password);
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.message || "Login failed");
     }
-  }
+  };
 
   return (
-    <div style={{
-      maxWidth: 360,
-      margin: "120px auto",
-      background: "#fff",
-      padding: 24,
-      borderRadius: 8
-    }}>
-      <h2>Mascot Admin</h2>
-
+    <form onSubmit={handleLogin}>
+      <input
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        placeholder="Username"
+        required
+      />
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Password"
+        required
+      />
       {error && <p style={{ color: "red" }}>{error}</p>}
-
-      <form onSubmit={handleSubmit}>
-        <input
-          placeholder="Username"
-          onChange={e => setUsername(e.target.value)}
-          required
-        />
-        <br /><br />
-        <input
-          type="password"
-          placeholder="Password"
-          onChange={e => setPassword(e.target.value)}
-          required
-        />
-        <br /><br />
-        <button style={{ width: "100%" }}>
-          Login
-        </button>
-      </form>
-    </div>
+      <button type="submit">Login</button>
+    </form>
   );
 }
