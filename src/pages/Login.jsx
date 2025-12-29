@@ -21,22 +21,70 @@ export default function Login() {
   };
 
   return (
-    <form onSubmit={handleLogin}>
-      <input
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        placeholder="Username"
-        required
-      />
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="Password"
-        required
-      />
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <button type="submit">Login</button>
-    </form>
+    <div style={styles.container}>
+      <form onSubmit={handleLogin} style={styles.form}>
+        <h2>Admin Login</h2>
+
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          style={styles.input}
+          required
+        />
+
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={styles.input}
+          required
+        />
+
+        {error && <p style={styles.error}>{error}</p>}
+
+        <button type="submit" style={styles.button}>
+          Login
+        </button>
+      </form>
+    </div>
   );
 }
+
+/* ✅ Inline styles to avoid CSS conflicts */
+const styles = {
+  container: {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#f5f6fa"
+  },
+  form: {
+    width: "320px",
+    padding: "24px",
+    background: "#fff",
+    borderRadius: "8px",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px"
+  },
+  input: {
+    padding: "10px",
+    fontSize: "14px"
+  },
+  button: {
+    padding: "10px",
+    background: "#4f46e5",
+    color: "#fff",
+    border: "none",
+    cursor: "pointer"
+  },
+  error: {
+    color: "red",
+    fontSize: "13px"
+  }
+};
