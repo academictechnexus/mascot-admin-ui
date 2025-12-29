@@ -1,5 +1,6 @@
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Sites from "./pages/Sites";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
@@ -7,6 +8,7 @@ export default function App() {
   return token ? (
     <ProtectedRoute>
       <Dashboard />
+      <Sites />
     </ProtectedRoute>
   ) : (
     <Login />
