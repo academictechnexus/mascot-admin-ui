@@ -5,80 +5,189 @@ import { adminFetch } from "../api/adminApi";
 export default function Sites() {
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingSite, setEditingSite] = useState(null);
+
+  const [form, setForm] = useState({
+    name: "",
+    domain: "",
+    plan: "basic",
+    daily_quota: 50
+  });
+
+  async function loadSites() {
+    setLoading(true);
+    const data = await adminFetch("/admin/sites");
+    setSites(data);
+    setLoading(false);
+  }
 
   useEffect(() => {
-    adminFetch("/sites")
-      .then(data => {
-        if (Array.isArray(data)) setSites(data);
-      })
-      .finally(() => setLoading(false));
+    loadSites();
   }, []);
+
+  function openAdd() {
+    setEditingSite(null);
+    setForm({ name: "", domain: "", plan: "basic", daily_quota: 50 });
+    setShowModal(true);
+  }
+
+  function openEdit(site) {
+    setEditingSite(site);
+    setForm({
+      name: site.name,
+      domain: site.domain,
+      plan: site.plan,
+      daily_quota: site.daily_quota
+    });
+    setShowModal(true);
+  }
+
+  async function saveSite() {
+    if (editingSite) {
+      await adminFetch(`/admin/sites/${editingSite.id}`, {
+        method: "PUT",
+        body: JSON.stringify(form)
+      });
+    } else {
+      await adminFetch("/admin/sites", {
+        method: "POST",
+        body: JSON.stringify(form)
+      });
+    }
+
+    setShowModal(false);
+    loadSites();
+  }
+
+  async function toggleStatus(site) {
+    await adminFetch(`/admin/sites/${site.id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        status: site.status === "active" ? "disabled" : "active"
+      })
+    });
+    loadSites();
+  }
 
   return (
     <Layout>
       <div style={styles.container}>
-        {/* Header */}
         <div style={styles.header}>
           <div>
             <h1 style={styles.title}>Sites</h1>
-            <p style={styles.subtitle}>
-              Manage customer websites, plans, and usage limits
-            </p>
+            <p style={styles.subtitle}>Manage tenants, plans and usage</p>
           </div>
-
-          <button style={styles.addBtn}>+ Add Site</button>
+          <button onClick={openAdd} style={styles.primaryBtn}>
+            + Add Site
+          </button>
         </div>
 
-        {/* Content */}
         {loading ? (
-          <div style={styles.card}>Loading sites…</div>
-        ) : sites.length === 0 ? (
-          <div style={styles.card}>No sites created yet</div>
+          <div style={styles.card}>Loading…</div>
         ) : (
-          <div style={styles.tableWrapper}>
+          <div style={styles.tableWrap}>
             <table style={styles.table}>
               <thead>
                 <tr>
-                  <th>Site</th>
+                  <th>Name</th>
+                  <th>Domain</th>
                   <th>Plan</th>
-                  <th>Usage</th>
+                  <th>Quota</th>
                   <th>Status</th>
                   <th align="right">Actions</th>
                 </tr>
               </thead>
-
               <tbody>
                 {sites.map(site => (
                   <tr key={site.id}>
+                    <td>{site.name}</td>
+                    <td>{site.domain}</td>
+                    <td>{site.plan}</td>
+                    <td>{site.daily_quota}</td>
                     <td>
-                      <div style={styles.siteCell}>
-                        <div style={styles.siteName}>{site.name}</div>
-                        <div style={styles.siteDomain}>{site.domain}</div>
-                      </div>
+                      <span
+                        style={{
+                          ...styles.badge,
+                          ...(site.status === "active"
+                            ? styles.active
+                            : styles.disabled)
+                        }}
+                      >
+                        {site.status}
+                      </span>
                     </td>
-
-                    <td>
-                      <PlanBadge plan={site.plan} />
-                    </td>
-
-                    <td>
-                      <UsageBar
-                        used={site.usage_today || 0}
-                        limit={site.daily_quota}
-                      />
-                    </td>
-
-                    <td>
-                      <StatusBadge status={site.status} />
-                    </td>
-
                     <td align="right">
-                      <ActionMenu />
+                      <button
+                        style={styles.actionBtn}
+                        onClick={() => openEdit(site)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        style={styles.dangerBtn}
+                        onClick={() => toggleStatus(site)}
+                      >
+                        {site.status === "active" ? "Disable" : "Enable"}
+                      </button>
                     </td>
                   </tr>
                 ))}
+
+                {sites.length === 0 && (
+                  <tr>
+                    <td colSpan="6">No sites created</td>
+                  </tr>
+                )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* MODAL */}
+        {showModal && (
+          <div style={styles.modalOverlay}>
+            <div style={styles.modal}>
+              <h3>{editingSite ? "Edit Site" : "Add Site"}</h3>
+
+              <input
+                placeholder="Site Name"
+                value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+              />
+
+              <input
+                placeholder="Domain"
+                value={form.domain}
+                disabled={!!editingSite}
+                onChange={e => setForm({ ...form, domain: e.target.value })}
+              />
+
+              <select
+                value={form.plan}
+                onChange={e => setForm({ ...form, plan: e.target.value })}
+              >
+                <option value="basic">Basic</option>
+                <option value="pro">Pro</option>
+                <option value="advanced">Advanced</option>
+              </select>
+
+              <input
+                type="number"
+                placeholder="Daily Quota"
+                value={form.daily_quota}
+                onChange={e =>
+                  setForm({ ...form, daily_quota: Number(e.target.value) })
+                }
+              />
+
+              <div style={styles.modalActions}>
+                <button onClick={() => setShowModal(false)}>Cancel</button>
+                <button onClick={saveSite} style={styles.primaryBtn}>
+                  Save
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -87,203 +196,81 @@ export default function Sites() {
 }
 
 /* =========================
-   SUB COMPONENTS
-========================= */
-
-function PlanBadge({ plan }) {
-  const colors = {
-    free: "#e5e7eb",
-    pro: "#c7d2fe",
-    enterprise: "#fde68a"
-  };
-
-  return (
-    <span
-      style={{
-        ...styles.badge,
-        background: colors[plan] || "#e5e7eb"
-      }}
-    >
-      {plan}
-    </span>
-  );
-}
-
-function StatusBadge({ status }) {
-  const map = {
-    active: styles.statusActive,
-    disabled: styles.statusDisabled
-  };
-
-  return (
-    <span style={{ ...styles.badge, ...(map[status] || {}) }}>
-      {status}
-    </span>
-  );
-}
-
-function UsageBar({ used, limit }) {
-  const percent = Math.min(100, Math.round((used / limit) * 100 || 0));
-
-  return (
-    <div>
-      <div style={styles.usageHeader}>
-        <span>{used}</span>
-        <span>{limit}</span>
-      </div>
-
-      <div style={styles.usageBar}>
-        <div
-          style={{
-            ...styles.usageFill,
-            width: `${percent}%`
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function ActionMenu() {
-  return (
-    <div style={styles.actions}>
-      <button style={styles.actionBtn}>View</button>
-      <button style={styles.actionBtn}>Edit</button>
-      <button style={styles.actionBtnDanger}>Disable</button>
-    </div>
-  );
-}
-
-/* =========================
-   STYLES (ENTERPRISE)
+   STYLES
 ========================= */
 const styles = {
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 24
-  },
+  container: { display: "flex", flexDirection: "column", gap: 20 },
+  header: { display: "flex", justifyContent: "space-between" },
+  title: { margin: 0 },
+  subtitle: { color: "#64748b" },
 
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center"
-  },
-
-  title: {
-    fontSize: 24,
-    fontWeight: 600,
-    margin: 0
-  },
-
-  subtitle: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginTop: 4
-  },
-
-  addBtn: {
+  primaryBtn: {
     padding: "8px 14px",
-    borderRadius: 6,
     background: "#4f46e5",
     color: "#fff",
+    borderRadius: 6,
     border: "none",
     cursor: "pointer"
   },
 
-  card: {
-    background: "#ffffff",
-    borderRadius: 10,
-    padding: 24,
+  tableWrap: {
+    background: "#fff",
+    borderRadius: 8,
     border: "1px solid #e5e7eb"
   },
 
-  tableWrapper: {
-    background: "#ffffff",
-    borderRadius: 10,
-    border: "1px solid #e5e7eb",
-    overflow: "hidden"
-  },
-
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-    fontSize: 14
-  },
-
-  siteCell: {
-    display: "flex",
-    flexDirection: "column"
-  },
-
-  siteName: {
-    fontWeight: 500
-  },
-
-  siteDomain: {
-    fontSize: 12,
-    color: "#6b7280"
-  },
+  table: { width: "100%", borderCollapse: "collapse" },
 
   badge: {
     padding: "4px 10px",
     borderRadius: 999,
-    fontSize: 12,
-    textTransform: "capitalize"
+    fontSize: 12
   },
 
-  statusActive: {
-    background: "#dcfce7",
-    color: "#166534"
-  },
-
-  statusDisabled: {
-    background: "#fee2e2",
-    color: "#991b1b"
-  },
-
-  usageHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    fontSize: 12,
-    color: "#6b7280"
-  },
-
-  usageBar: {
-    height: 6,
-    background: "#e5e7eb",
-    borderRadius: 999,
-    overflow: "hidden",
-    marginTop: 4
-  },
-
-  usageFill: {
-    height: "100%",
-    background: "#4f46e5"
-  },
-
-  actions: {
-    display: "flex",
-    gap: 8,
-    justifyContent: "flex-end"
-  },
+  active: { background: "#dcfce7", color: "#166534" },
+  disabled: { background: "#fee2e2", color: "#991b1b" },
 
   actionBtn: {
-    padding: "6px 10px",
-    fontSize: 12,
-    borderRadius: 6,
-    border: "1px solid #e5e7eb",
-    background: "#ffffff",
-    cursor: "pointer"
+    marginRight: 8,
+    padding: "6px 10px"
   },
 
-  actionBtnDanger: {
+  dangerBtn: {
     padding: "6px 10px",
-    fontSize: 12,
-    borderRadius: 6,
-    border: "1px solid #fee2e2",
-    background: "#fff1f2",
+    background: "#fee2e2",
     color: "#991b1b",
-    cursor: "pointer"
+    border: "1px solid #fecaca"
+  },
+
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.4)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+
+  modal: {
+    background: "#fff",
+    padding: 24,
+    borderRadius: 8,
+    width: 360,
+    display: "flex",
+    flexDirection: "column",
+    gap: 10
+  },
+
+  modalActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 10
+  },
+
+  card: {
+    padding: 20,
+    background: "#fff",
+    borderRadius: 8
   }
 };
