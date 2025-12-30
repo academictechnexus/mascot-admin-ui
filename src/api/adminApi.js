@@ -1,5 +1,5 @@
 // src/api/adminApi.js
-// Centralized Admin API layer (JWT-safe, Context-ready)
+// Robust Admin API layer (handles non-JSON safely)
 
 const API_BASE = import.meta.env.VITE_ADMIN_API;
 
@@ -17,15 +17,18 @@ export async function adminLogin(username, password) {
     body: JSON.stringify({ username, password })
   });
 
+  const text = await res.text(); // 👈 read raw first
+
   let data;
   try {
-    data = await res.json();
+    data = JSON.parse(text);
   } catch {
-    throw new Error("Invalid server response");
+    console.error("❌ Non-JSON response from server:", text);
+    throw new Error("Server returned invalid response");
   }
 
   if (!res.ok || !data.success || !data.token) {
-    throw new Error(data?.message || "Login failed");
+    throw new Error(data.message || "Login failed");
   }
 
   return data; // { token, admin }
@@ -45,25 +48,28 @@ export async function adminFetch(path, options = {}) {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      Authorization: `Bearer ${token}`,
       ...(options.headers || {})
     }
   });
+
+  const text = await res.text();
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    console.error("❌ Non-JSON response:", text);
+    throw new Error("Server returned invalid response");
+  }
 
   if (res.status === 401) {
     localStorage.removeItem("admin_token");
     throw new Error("unauthorized");
   }
 
-  let data;
-  try {
-    data = await res.json();
-  } catch {
-    throw new Error("Invalid server response");
-  }
-
   if (!res.ok) {
-    throw new Error(data?.error || "request_failed");
+    throw new Error(data.error || "request_failed");
   }
 
   return data;
