@@ -21,13 +21,16 @@ export default function Sidebar() {
           <NavItem to="/dashboard" label="Dashboard" />
         </NavSection>
 
-        <NavSection title="Management">
-          <NavItem to="/sites" label="Sites" />
-          <NavItem to="/knowledge" label="Knowledge Base" />
+        {/* STEP 1 — GLOBAL CONTROL */}
+        <NavSection title="Platform">
+          <NavItem to="/settings" label="Global Settings" />
         </NavSection>
 
-        <NavSection title="AI Controls">
+        <NavSection title="Management">
+          <NavItem to="/sites" label="Sites" />
           <NavItem to="/ai-controls" label="AI Configuration" />
+          <NavItem to="/conversations" label="Conversations" />
+          <NavItem to="/knowledge" label="Knowledge Base" />
         </NavSection>
       </nav>
 
