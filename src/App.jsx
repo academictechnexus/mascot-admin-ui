@@ -5,6 +5,8 @@ import Dashboard from "./pages/Dashboard";
 import Sites from "./pages/Sites";
 import AiControls from "./pages/AiControls";
 import Knowledge from "./pages/Knowledge";
+import Settings from "./pages/Settings";
+import Conversations from "./pages/Conversations";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AdminProvider } from "./context/AdminContext";
@@ -36,6 +38,17 @@ export default function App() {
             }
           />
 
+          {/* STEP 1 — GLOBAL SETTINGS */}
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* STEP 2 — PER-SITE AI CONTROLS */}
           <Route
             path="/ai-controls"
             element={
@@ -45,6 +58,17 @@ export default function App() {
             }
           />
 
+          {/* STEP 3 — CONVERSATION VIEWER */}
+          <Route
+            path="/conversations"
+            element={
+              <ProtectedRoute>
+                <Conversations />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* STEP 3 — KNOWLEDGE VIEWER */}
           <Route
             path="/knowledge"
             element={
