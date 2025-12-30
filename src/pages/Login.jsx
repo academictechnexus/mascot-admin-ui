@@ -1,19 +1,26 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginAdmin } from "../api/adminApi";
+import { adminLogin } from "../api/adminApi";
+import { useAdmin } from "../context/AdminContext";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useAdmin();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      await loginAdmin(username, password);
+      const res = await adminLogin(username, password);
+
+      // store token + admin via context (single source of truth)
+      login(res.token, res.admin);
+
+      // keep your existing route behavior
       navigate("/dashboard");
     } catch (err) {
       setError(err.message || "Login failed");
@@ -53,7 +60,7 @@ export default function Login() {
   );
 }
 
-/* ✅ Inline styles to avoid CSS conflicts */
+/* ✅ Inline styles preserved — NO UI BREAKAGE */
 const styles = {
   container: {
     minHeight: "100vh",
