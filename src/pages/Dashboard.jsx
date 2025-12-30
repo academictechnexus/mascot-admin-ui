@@ -1,6 +1,50 @@
+import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
+import { adminFetch } from "../api/adminApi";
 
 export default function Dashboard() {
+  const [overview, setOverview] = useState(null);
+  const [sites, setSites] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      adminFetch("/admin/analytics/overview"),
+      adminFetch("/admin/analytics/sites")
+    ])
+      .then(([overviewData, sitesData]) => {
+        setOverview(overviewData);
+        setSites(sitesData);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <Layout>
+        <p>Loading dashboard…</p>
+      </Layout>
+    );
+  }
+
+  const totalUsage =
+    sites.reduce((sum, s) => sum + Number(s.usage_today || 0), 0) || 0;
+
+  const quotaUsagePercent =
+    sites.length === 0
+      ? 0
+      : Math.round(
+          (totalUsage /
+            sites.reduce((s, x) => s + Number(x.daily_quota || 0), 0)) *
+            100
+        );
+
+  const highUsageSites = sites.filter(
+    s => s.daily_quota && s.usage_today / s.daily_quota >= 0.8
+  );
+
+  const inactiveSites = sites.filter(s => s.usage_today === 0);
+
   return (
     <Layout>
       <div style={styles.container}>
@@ -15,16 +59,32 @@ export default function Dashboard() {
 
           <div style={styles.badgeHealthy}>
             <span style={styles.dotHealthy} />
-            All Systems Operational
+            Live System Data
           </div>
         </div>
 
         {/* ================= KPI CARDS ================= */}
         <div style={styles.kpiGrid}>
-          <KpiCard label="Total Sites" value="12" hint="2 added this month" />
-          <KpiCard label="Messages Today" value="1,248" hint="+18% vs yesterday" />
-          <KpiCard label="AI Responses" value="1,231" hint="99% success rate" />
-          <KpiCard label="Quota Usage" value="62%" hint="Across all sites" />
+          <KpiCard
+            label="Total Sites"
+            value={overview.totalSites}
+            hint={`${overview.activeSites} active`}
+          />
+          <KpiCard
+            label="Messages Today"
+            value={overview.messagesToday}
+            hint="Across all sites"
+          />
+          <KpiCard
+            label="Knowledge Items"
+            value={overview.knowledgeItems}
+            hint="Learned summaries"
+          />
+          <KpiCard
+            label="Quota Usage"
+            value={`${quotaUsagePercent}%`}
+            hint="Today"
+          />
         </div>
 
         {/* ================= ATTENTION REQUIRED ================= */}
@@ -32,10 +92,22 @@ export default function Dashboard() {
           <h3 style={styles.sectionTitle}>⚠️ Attention Required</h3>
 
           <ul style={styles.alertList}>
-            <li>2 sites are above <b>80% daily quota</b></li>
-            <li>1 site has <b>zero usage</b> in last 7 days</li>
-            <li>1 site is currently <b>disabled</b></li>
-            <li>3 AI responses flagged for retry today</li>
+            {highUsageSites.length > 0 && (
+              <li>
+                {highUsageSites.length} site(s) above{" "}
+                <b>80% daily quota</b>
+              </li>
+            )}
+            {inactiveSites.length > 0 && (
+              <li>
+                {inactiveSites.length} site(s) have{" "}
+                <b>zero usage today</b>
+              </li>
+            )}
+            {highUsageSites.length === 0 &&
+              inactiveSites.length === 0 && (
+                <li>All systems operating within limits</li>
+              )}
           </ul>
         </section>
 
@@ -45,9 +117,10 @@ export default function Dashboard() {
           <section style={styles.card}>
             <h3 style={styles.sectionTitle}>Usage Overview</h3>
 
-            <ProgressRow label="Chat Requests" value={72} />
-            <ProgressRow label="Knowledge Lookups" value={48} />
-            <ProgressRow label="Admin API Calls" value={26} />
+            <ProgressRow
+              label="Messages Used"
+              value={quotaUsagePercent}
+            />
 
             <p style={styles.muted}>
               Usage resets automatically every 24 hours
@@ -58,17 +131,17 @@ export default function Dashboard() {
           <section style={styles.card}>
             <h3 style={styles.sectionTitle}>System & AI Status</h3>
 
-            <InfoRow label="Backend" value="Healthy" ok />
-            <InfoRow label="Database" value="Connected (Neon)" ok />
-            <InfoRow label="Authentication" value="JWT Secure" ok />
+            <InfoRow label="Backend" value="Operational" ok />
+            <InfoRow label="Database" value="Neon Connected" ok />
+            <InfoRow label="Authentication" value="JWT Secured" ok />
             <InfoRow label="AI Provider" value="OpenAI Active" ok />
-            <InfoRow label="AI Learning" value="Enabled" ok />
+            <InfoRow label="Learning Engine" value="Enabled" ok />
           </section>
         </div>
 
         {/* ================= TOP SITES ================= */}
         <section style={styles.card}>
-          <h3 style={styles.sectionTitle}>Top Sites by Usage</h3>
+          <h3 style={styles.sectionTitle}>Site Usage Today</h3>
 
           <table style={styles.table}>
             <thead>
@@ -76,60 +149,34 @@ export default function Dashboard() {
                 <th>Site</th>
                 <th>Plan</th>
                 <th>Usage</th>
+                <th>Quota</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>academictechnexus.com</td>
-                <td>Advanced</td>
-                <td>82%</td>
-                <td style={styles.ok}>Active</td>
-              </tr>
-              <tr>
-                <td>demo-basic</td>
-                <td>Basic</td>
-                <td>41%</td>
-                <td style={styles.ok}>Active</td>
-              </tr>
-              <tr>
-                <td>client-example.com</td>
-                <td>Pro</td>
-                <td>12%</td>
-                <td style={styles.warn}>Low Usage</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
+              {sites.map(site => (
+                <tr key={site.id}>
+                  <td>{site.domain}</td>
+                  <td>{site.plan}</td>
+                  <td>{site.usage_today}</td>
+                  <td>{site.daily_quota}</td>
+                  <td
+                    style={
+                      site.status === "active"
+                        ? styles.ok
+                        : styles.warn
+                    }
+                  >
+                    {site.status}
+                  </td>
+                </tr>
+              ))}
 
-        {/* ================= RECENT ACTIVITY ================= */}
-        <section style={styles.card}>
-          <h3 style={styles.sectionTitle}>Recent Activity</h3>
-
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Event</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>5 min ago</td>
-                <td>Admin login</td>
-                <td style={styles.ok}>Success</td>
-              </tr>
-              <tr>
-                <td>22 min ago</td>
-                <td>Site updated (plan upgrade)</td>
-                <td style={styles.ok}>Completed</td>
-              </tr>
-              <tr>
-                <td>1 hr ago</td>
-                <td>Quota warning triggered</td>
-                <td style={styles.warn}>Monitored</td>
-              </tr>
+              {sites.length === 0 && (
+                <tr>
+                  <td colSpan="5">No sites found</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </section>
@@ -158,7 +205,9 @@ function ProgressRow({ label, value }) {
         <span>{value}%</span>
       </div>
       <div style={styles.progressBar}>
-        <div style={{ ...styles.progressFill, width: `${value}%` }} />
+        <div
+          style={{ ...styles.progressFill, width: `${value}%` }}
+        />
       </div>
     </div>
   );
