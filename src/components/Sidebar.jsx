@@ -6,19 +6,32 @@ export default function Sidebar() {
 
   return (
     <aside style={styles.sidebar}>
-      {/* Brand */}
+      {/* ================= BRAND ================= */}
       <div style={styles.brand}>
         <span style={styles.logo}>🧠</span>
-        <span>Mascot Admin</span>
+        <div>
+          <div style={styles.brandTitle}>Mascot AI</div>
+          <div style={styles.brandSubtitle}>Admin Console</div>
+        </div>
       </div>
 
-      {/* Navigation */}
+      {/* ================= NAVIGATION ================= */}
       <nav style={styles.nav}>
-        <NavItem to="/dashboard" label="Dashboard" />
-        <NavItem to="/sites" label="Sites" />
+        <NavSection title="Overview">
+          <NavItem to="/dashboard" label="Dashboard" />
+        </NavSection>
+
+        <NavSection title="Management">
+          <NavItem to="/sites" label="Sites" />
+          <NavItem to="/knowledge" label="Knowledge Base" />
+        </NavSection>
+
+        <NavSection title="AI Controls">
+          <NavItem to="/ai-controls" label="AI Configuration" />
+        </NavSection>
       </nav>
 
-      {/* Footer / Logout */}
+      {/* ================= FOOTER ================= */}
       <div style={styles.footer}>
         <button onClick={logout} style={styles.logoutBtn}>
           Logout
@@ -29,7 +42,19 @@ export default function Sidebar() {
 }
 
 /* =========================
-   NAV ITEM COMPONENT
+   NAV SECTION
+========================= */
+function NavSection({ title, children }) {
+  return (
+    <div style={styles.section}>
+      <div style={styles.sectionTitle}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+/* =========================
+   NAV ITEM
 ========================= */
 function NavItem({ to, label }) {
   return (
@@ -46,11 +71,11 @@ function NavItem({ to, label }) {
 }
 
 /* =========================
-   STYLES (PROFESSIONAL)
+   STYLES (ENTERPRISE)
 ========================= */
 const styles = {
   sidebar: {
-    width: 260,
+    width: 270,
     background: "#0f172a", // slate-900
     color: "#e5e7eb",
     display: "flex",
@@ -62,23 +87,48 @@ const styles = {
   brand: {
     display: "flex",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
     fontWeight: 600,
     fontSize: 16,
     color: "#ffffff",
-    marginBottom: 32,
+    marginBottom: 28,
     paddingLeft: 8
   },
 
   logo: {
-    fontSize: 20
+    fontSize: 22
+  },
+
+  brandTitle: {
+    fontSize: 15,
+    fontWeight: 600
+  },
+
+  brandSubtitle: {
+    fontSize: 12,
+    color: "#94a3b8"
   },
 
   nav: {
     display: "flex",
     flexDirection: "column",
-    gap: 6,
+    gap: 18,
     flex: 1
+  },
+
+  section: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6
+  },
+
+  sectionTitle: {
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+    color: "#64748b",
+    paddingLeft: 12,
+    marginBottom: 4
   },
 
   navItem: {
