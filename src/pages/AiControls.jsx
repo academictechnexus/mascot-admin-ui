@@ -3,42 +3,90 @@ import Layout from "../components/Layout";
 import { adminFetch } from "../api/adminApi";
 
 export default function AiControls() {
-  /* =========================
-     STATE
-  ========================= */
+  /* ================= STATE ================= */
   const [sites, setSites] = useState([]);
-  const [selectedSite, setSelectedSite] = useState("global");
+  const [scope, setScope] = useState("global");
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("");
 
-  const [config, setConfig] = useState({
-    enabled: true,
-    learningEnabled: true,
-    tone: "professional",
+  const [form, setForm] = useState({
+    ai_enabled: true,
+    learning_enabled: true,
     temperature: 0.6,
-    maxTokens: 500,
-    blockedTopics: "",
-    systemPrompt: "You are a helpful AI assistant."
+    max_tokens: 500,
+    system_prompt: "",
+    blocked_topics: ""
   });
 
-  /* =========================
-     LOAD SITES (for site-level controls)
-  ========================= */
+  /* ================= LOAD SITES ================= */
   useEffect(() => {
     adminFetch("/admin/sites").then(setSites).catch(() => {});
   }, []);
 
-  /* =========================
-     SAVE (UI ONLY FOR NOW)
-  ========================= */
-  function saveConfig() {
-    alert(
-      "AI configuration saved (UI-ready).\n\nNext step: connect to backend persistence."
-    );
+  /* ================= LOAD CONFIG ================= */
+  useEffect(() => {
+    loadConfig();
+    // eslint-disable-next-line
+  }, [scope]);
+
+  async function loadConfig() {
+    setLoading(true);
+    setStatus("");
+
+    try {
+      if (scope === "global") {
+        const data = await adminFetch("/admin/settings");
+        setForm({
+          ai_enabled: data.ai_enabled,
+          learning_enabled: data.learning_enabled,
+          temperature: data.temperature,
+          max_tokens: data.max_tokens,
+          system_prompt: data.system_prompt || "",
+          blocked_topics: data.blocked_topics || ""
+        });
+      } else {
+        const data = await adminFetch(`/admin/sites/${scope}/ai`);
+        setForm({
+          ai_enabled: data.ai_enabled ?? true,
+          learning_enabled: data.learning_enabled ?? true,
+          temperature: data.temperature ?? 0.6,
+          max_tokens: data.max_tokens ?? 500,
+          system_prompt: data.system_prompt || "",
+          blocked_topics: data.blocked_topics || ""
+        });
+      }
+    } catch {
+      setStatus("❌ Failed to load configuration");
+    } finally {
+      setLoading(false);
+    }
   }
 
+  /* ================= SAVE CONFIG ================= */
+  async function saveConfig() {
+    setStatus("");
+    try {
+      if (scope === "global") {
+        await adminFetch("/admin/settings", {
+          method: "PUT",
+          body: JSON.stringify(form)
+        });
+      } else {
+        await adminFetch(`/admin/sites/${scope}/ai`, {
+          method: "PUT",
+          body: JSON.stringify(form)
+        });
+      }
+      setStatus("✅ Configuration saved successfully");
+    } catch {
+      setStatus("❌ Save failed");
+    }
+  }
+
+  /* ================= UI ================= */
   return (
-    <Layout>
+    <Layout title="AI Configuration">
       <div style={styles.container}>
-        {/* ================= HEADER ================= */}
         <div style={styles.header}>
           <div>
             <h1 style={styles.title}>AI Controls</h1>
@@ -46,158 +94,136 @@ export default function AiControls() {
               Configure AI behavior globally or per site
             </p>
           </div>
-
-          <button style={styles.primaryBtn} onClick={saveConfig}>
+          <button onClick={saveConfig} style={styles.primaryBtn}>
             Save Changes
           </button>
         </div>
 
-        {/* ================= SCOPE SELECTOR ================= */}
+        {/* Scope */}
         <section style={styles.card}>
           <h3 style={styles.sectionTitle}>Configuration Scope</h3>
-
           <select
-            value={selectedSite}
-            onChange={e => setSelectedSite(e.target.value)}
+            value={scope}
+            onChange={e => setScope(e.target.value)}
             style={styles.select}
           >
             <option value="global">🌐 Global (All Sites)</option>
             {sites.map(site => (
               <option key={site.id} value={site.id}>
-                🏷 {site.name} ({site.domain})
+                {site.domain}
               </option>
             ))}
           </select>
-
           <p style={styles.hint}>
             Site-level settings override global configuration
           </p>
         </section>
 
-        {/* ================= CORE CONTROLS ================= */}
-        <section style={styles.card}>
-          <h3 style={styles.sectionTitle}>Core AI Behavior</h3>
+        {loading ? (
+          <div style={styles.card}>Loading…</div>
+        ) : (
+          <>
+            {/* Core */}
+            <section style={styles.card}>
+              <h3 style={styles.sectionTitle}>Core AI Behavior</h3>
 
-          <Toggle
-            label="AI Enabled"
-            checked={config.enabled}
-            onChange={v => setConfig({ ...config, enabled: v })}
-          />
+              <Toggle
+                label="AI Enabled"
+                checked={form.ai_enabled}
+                onChange={v =>
+                  setForm({ ...form, ai_enabled: v })
+                }
+              />
 
-          <Toggle
-            label="Self-Learning Enabled"
-            checked={config.learningEnabled}
-            onChange={v => setConfig({ ...config, learningEnabled: v })}
-          />
+              <Toggle
+                label="Self-Learning Enabled"
+                checked={form.learning_enabled}
+                onChange={v =>
+                  setForm({ ...form, learning_enabled: v })
+                }
+              />
 
-          <Field label="AI Tone">
-            <select
-              value={config.tone}
-              onChange={e =>
-                setConfig({ ...config, tone: e.target.value })
-              }
-            >
-              <option value="professional">Professional</option>
-              <option value="friendly">Friendly</option>
-              <option value="sales">Sales-Focused</option>
-              <option value="support">Customer Support</option>
-            </select>
-          </Field>
+              <Field label="System Prompt">
+                <textarea
+                  rows={3}
+                  value={form.system_prompt}
+                  onChange={e =>
+                    setForm({
+                      ...form,
+                      system_prompt: e.target.value
+                    })
+                  }
+                />
+              </Field>
+            </section>
 
-          <Field label="System Prompt">
-            <textarea
-              rows={3}
-              value={config.systemPrompt}
-              onChange={e =>
-                setConfig({ ...config, systemPrompt: e.target.value })
-              }
-            />
-          </Field>
-        </section>
+            {/* Model */}
+            <section style={styles.card}>
+              <h3 style={styles.sectionTitle}>Model Parameters</h3>
 
-        {/* ================= MODEL CONTROLS ================= */}
-        <section style={styles.card}>
-          <h3 style={styles.sectionTitle}>Model Parameters</h3>
+              <Field
+                label={`Creativity (Temperature): ${form.temperature}`}
+              >
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={form.temperature}
+                  onChange={e =>
+                    setForm({
+                      ...form,
+                      temperature: Number(e.target.value)
+                    })
+                  }
+                />
+              </Field>
 
-          <Field label={`Creativity (Temperature): ${config.temperature}`}>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={config.temperature}
-              onChange={e =>
-                setConfig({
-                  ...config,
-                  temperature: Number(e.target.value)
-                })
-              }
-            />
-          </Field>
+              <Field label="Max Tokens">
+                <input
+                  type="number"
+                  value={form.max_tokens}
+                  onChange={e =>
+                    setForm({
+                      ...form,
+                      max_tokens: Number(e.target.value)
+                    })
+                  }
+                />
+              </Field>
+            </section>
 
-          <Field label="Max Response Length (tokens)">
-            <input
-              type="number"
-              min="100"
-              max="2000"
-              value={config.maxTokens}
-              onChange={e =>
-                setConfig({
-                  ...config,
-                  maxTokens: Number(e.target.value)
-                })
-              }
-            />
-          </Field>
-        </section>
+            {/* Safety */}
+            <section style={styles.cardDanger}>
+              <h3 style={styles.sectionTitle}>Safety & Restrictions</h3>
 
-        {/* ================= SAFETY ================= */}
-        <section style={styles.cardDanger}>
-          <h3 style={styles.sectionTitle}>Safety & Restrictions</h3>
+              <Field label="Blocked Topics">
+                <textarea
+                  rows={2}
+                  value={form.blocked_topics}
+                  onChange={e =>
+                    setForm({
+                      ...form,
+                      blocked_topics: e.target.value
+                    })
+                  }
+                />
+              </Field>
 
-          <Field label="Blocked Topics / Keywords">
-            <textarea
-              rows={2}
-              placeholder="e.g. pricing negotiation, legal advice"
-              value={config.blockedTopics}
-              onChange={e =>
-                setConfig({
-                  ...config,
-                  blockedTopics: e.target.value
-                })
-              }
-            />
-          </Field>
+              <p style={styles.dangerHint}>
+                Comma-separated keywords that the AI must refuse
+              </p>
+            </section>
+          </>
+        )}
 
-          <p style={styles.dangerHint}>
-            Requests containing these terms will be ignored or redirected
-          </p>
-        </section>
-
-        {/* ================= KILL SWITCH ================= */}
-        <section style={styles.killSwitch}>
-          <div>
-            <h3 style={styles.sectionTitle}>Emergency Kill Switch</h3>
-            <p style={styles.hint}>
-              Instantly disable AI responses for this scope
-            </p>
-          </div>
-
-          <button
-            style={styles.killBtn}
-            onClick={() =>
-              alert("Kill switch triggered (UI only)")
-            }
-          >
-            Disable AI
-          </button>
-        </section>
+        {status && <div>{status}</div>}
       </div>
     </Layout>
   );
 }
 
-/* ================= COMPONENTS ================= */
+/* ================= UI HELPERS ================= */
 
 function Field({ label, children }) {
   return (
@@ -286,24 +312,5 @@ const styles = {
   },
 
   hint: { fontSize: 12, color: "#6b7280" },
-  dangerHint: { fontSize: 12, color: "#991b1b" },
-
-  killSwitch: {
-    background: "#0f172a",
-    color: "#fff",
-    padding: 20,
-    borderRadius: 10,
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center"
-  },
-
-  killBtn: {
-    background: "#dc2626",
-    color: "#fff",
-    padding: "8px 14px",
-    borderRadius: 6,
-    border: "none",
-    cursor: "pointer"
-  }
+  dangerHint: { fontSize: 12, color: "#991b1b" }
 };
