@@ -4,36 +4,39 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Sites from "./pages/Sites";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { AdminProvider } from "./context/AdminContext";
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Public */}
-        <Route path="/login" element={<Login />} />
+      <AdminProvider>
+        <Routes>
+          {/* Public */}
+          <Route path="/login" element={<Login />} />
 
-        {/* Protected */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+          {/* Protected */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/sites"
-          element={
-            <ProtectedRoute>
-              <Sites />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/sites"
+            element={
+              <ProtectedRoute>
+                <Sites />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Default */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
-      </Routes>
+          {/* Default */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </AdminProvider>
     </BrowserRouter>
   );
 }
