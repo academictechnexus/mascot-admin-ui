@@ -9,10 +9,10 @@ export default function Sites() {
   const [editingSite, setEditingSite] = useState(null);
 
   const [form, setForm] = useState({
-    name: "",
     domain: "",
-    plan: "basic",
-    daily_quota: 50
+    plan: "demo",
+    daily_quota: 50,
+    status: "active"
   });
 
   async function loadSites() {
@@ -28,17 +28,22 @@ export default function Sites() {
 
   function openAdd() {
     setEditingSite(null);
-    setForm({ name: "", domain: "", plan: "basic", daily_quota: 50 });
+    setForm({
+      domain: "",
+      plan: "demo",
+      daily_quota: 50,
+      status: "active"
+    });
     setShowModal(true);
   }
 
   function openEdit(site) {
     setEditingSite(site);
     setForm({
-      name: site.name,
       domain: site.domain,
       plan: site.plan,
-      daily_quota: site.daily_quota
+      daily_quota: site.daily_quota,
+      status: site.status
     });
     setShowModal(true);
   }
@@ -47,7 +52,11 @@ export default function Sites() {
     if (editingSite) {
       await adminFetch(`/admin/sites/${editingSite.id}`, {
         method: "PUT",
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          plan: form.plan,
+          daily_quota: form.daily_quota,
+          status: form.status
+        })
       });
     } else {
       await adminFetch("/admin/sites", {
@@ -61,22 +70,25 @@ export default function Sites() {
   }
 
   async function toggleStatus(site) {
-    await adminFetch(`/admin/sites/${site.id}/status`, {
-      method: "PATCH",
+    await adminFetch(`/admin/sites/${site.id}`, {
+      method: "PUT",
       body: JSON.stringify({
+        plan: site.plan,
+        daily_quota: site.daily_quota,
         status: site.status === "active" ? "disabled" : "active"
       })
     });
+
     loadSites();
   }
 
   return (
-    <Layout>
+    <Layout title="Sites">
       <div style={styles.container}>
         <div style={styles.header}>
           <div>
             <h1 style={styles.title}>Sites</h1>
-            <p style={styles.subtitle}>Manage tenants, plans and usage</p>
+            <p style={styles.subtitle}>Manage tenants, plans, and quotas</p>
           </div>
           <button onClick={openAdd} style={styles.primaryBtn}>
             + Add Site
@@ -90,10 +102,9 @@ export default function Sites() {
             <table style={styles.table}>
               <thead>
                 <tr>
-                  <th>Name</th>
                   <th>Domain</th>
                   <th>Plan</th>
-                  <th>Quota</th>
+                  <th>Daily Quota</th>
                   <th>Status</th>
                   <th align="right">Actions</th>
                 </tr>
@@ -101,7 +112,6 @@ export default function Sites() {
               <tbody>
                 {sites.map(site => (
                   <tr key={site.id}>
-                    <td>{site.name}</td>
                     <td>{site.domain}</td>
                     <td>{site.plan}</td>
                     <td>{site.daily_quota}</td>
@@ -136,7 +146,7 @@ export default function Sites() {
 
                 {sites.length === 0 && (
                   <tr>
-                    <td colSpan="6">No sites created</td>
+                    <td colSpan="5">No sites created</td>
                   </tr>
                 )}
               </tbody>
@@ -151,38 +161,40 @@ export default function Sites() {
               <h3>{editingSite ? "Edit Site" : "Add Site"}</h3>
 
               <input
-                placeholder="Site Name"
-                value={form.name}
-                onChange={e => setForm({ ...form, name: e.target.value })}
-              />
-
-              <input
-                placeholder="Domain"
+                placeholder="Domain (example.com)"
                 value={form.domain}
                 disabled={!!editingSite}
-                onChange={e => setForm({ ...form, domain: e.target.value })}
+                onChange={e =>
+                  setForm({ ...form, domain: e.target.value })
+                }
               />
 
               <select
                 value={form.plan}
-                onChange={e => setForm({ ...form, plan: e.target.value })}
+                onChange={e =>
+                  setForm({ ...form, plan: e.target.value })
+                }
               >
-                <option value="basic">Basic</option>
-                <option value="pro">Pro</option>
-                <option value="advanced">Advanced</option>
+                <option value="demo">Demo</option>
+                <option value="paid">Paid</option>
               </select>
 
               <input
                 type="number"
-                placeholder="Daily Quota"
+                placeholder="Daily quota"
                 value={form.daily_quota}
                 onChange={e =>
-                  setForm({ ...form, daily_quota: Number(e.target.value) })
+                  setForm({
+                    ...form,
+                    daily_quota: Number(e.target.value)
+                  })
                 }
               />
 
               <div style={styles.modalActions}>
-                <button onClick={() => setShowModal(false)}>Cancel</button>
+                <button onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
                 <button onClick={saveSite} style={styles.primaryBtn}>
                   Save
                 </button>
