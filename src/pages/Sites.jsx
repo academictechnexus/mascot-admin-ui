@@ -5,8 +5,10 @@ import { adminFetch } from "../api/adminApi";
 export default function Sites() {
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false); // ✅ added (non-breaking)
   const [showModal, setShowModal] = useState(false);
   const [editingSite, setEditingSite] = useState(null);
+  const [error, setError] = useState(null); // ✅ added
 
   const [form, setForm] = useState({
     domain: "",
@@ -15,19 +17,37 @@ export default function Sites() {
     status: "active"
   });
 
+  /* =========================
+     LOAD SITES
+  ========================= */
   async function loadSites() {
-    setLoading(true);
-    const data = await adminFetch("/admin/sites");
-    setSites(data);
-    setLoading(false);
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data = await adminFetch("/admin/sites");
+
+      // Defensive: ensure array
+      setSites(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error("Failed to load sites", e);
+      setError("Failed to load sites");
+      setSites([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     loadSites();
   }, []);
 
+  /* =========================
+     MODAL HANDLERS
+  ========================= */
   function openAdd() {
     setEditingSite(null);
+    setError(null);
     setForm({
       domain: "",
       plan: "demo",
@@ -39,6 +59,7 @@ export default function Sites() {
 
   function openEdit(site) {
     setEditingSite(site);
+    setError(null);
     setForm({
       domain: site.domain,
       plan: site.plan,
@@ -48,40 +69,93 @@ export default function Sites() {
     setShowModal(true);
   }
 
+  /* =========================
+     SAVE SITE (ADD / EDIT)
+  ========================= */
   async function saveSite() {
-    if (editingSite) {
-      await adminFetch(`/admin/sites/${editingSite.id}`, {
+    try {
+      setSaving(true);
+      setError(null);
+
+      if (editingSite) {
+        // UPDATE EXISTING SITE
+        await adminFetch(`/admin/sites/${editingSite.id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            plan: form.plan,
+            daily_quota: Number(form.daily_quota),
+            status: form.status
+          })
+        });
+      } else {
+        // CREATE NEW SITE
+        const cleanDomain = form.domain
+          .replace(/^https?:\/\//, "")
+          .replace(/\/$/, "")
+          .toLowerCase()
+          .trim();
+
+        const payload = {
+          // ✅ backend-compatible payload
+          name: cleanDomain.split(".")[0],
+          domain: cleanDomain,
+          plan: form.plan,
+          daily_quota: Number(form.daily_quota),
+          status: form.status
+        };
+
+        await adminFetch("/admin/sites", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+      }
+
+      // ✅ reload sites AFTER save
+      await loadSites();
+
+      setShowModal(false);
+    } catch (e) {
+      console.error("Save site failed", e);
+
+      if (e?.message === "site_already_exists") {
+        setError("Site already exists");
+      } else {
+        setError("Failed to save site");
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  /* =========================
+     TOGGLE STATUS
+  ========================= */
+  async function toggleStatus(site) {
+    try {
+      setLoading(true);
+      setError(null);
+
+      await adminFetch(`/admin/sites/${site.id}`, {
         method: "PUT",
         body: JSON.stringify({
-          plan: form.plan,
-          daily_quota: form.daily_quota,
-          status: form.status
+          plan: site.plan,
+          daily_quota: site.daily_quota,
+          status: site.status === "active" ? "disabled" : "active"
         })
       });
-    } else {
-      await adminFetch("/admin/sites", {
-        method: "POST",
-        body: JSON.stringify(form)
-      });
+
+      await loadSites();
+    } catch (e) {
+      console.error("Toggle status failed", e);
+      setError("Failed to update site status");
+    } finally {
+      setLoading(false);
     }
-
-    setShowModal(false);
-    loadSites();
   }
 
-  async function toggleStatus(site) {
-    await adminFetch(`/admin/sites/${site.id}`, {
-      method: "PUT",
-      body: JSON.stringify({
-        plan: site.plan,
-        daily_quota: site.daily_quota,
-        status: site.status === "active" ? "disabled" : "active"
-      })
-    });
-
-    loadSites();
-  }
-
+  /* =========================
+     RENDER
+  ========================= */
   return (
     <Layout title="Sites">
       <div style={styles.container}>
@@ -94,6 +168,12 @@ export default function Sites() {
             + Add Site
           </button>
         </div>
+
+        {error && (
+          <div style={{ ...styles.card, color: "#991b1b" }}>
+            {error}
+          </div>
+        )}
 
         {loading ? (
           <div style={styles.card}>Loading…</div>
@@ -195,8 +275,12 @@ export default function Sites() {
                 <button onClick={() => setShowModal(false)}>
                   Cancel
                 </button>
-                <button onClick={saveSite} style={styles.primaryBtn}>
-                  Save
+                <button
+                  onClick={saveSite}
+                  style={styles.primaryBtn}
+                  disabled={saving}
+                >
+                  {saving ? "Saving…" : "Save"}
                 </button>
               </div>
             </div>
