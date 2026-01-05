@@ -5,10 +5,10 @@ import { adminFetch } from "../api/adminApi";
 export default function Sites() {
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false); // ✅ added (non-breaking)
+  const [saving, setSaving] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingSite, setEditingSite] = useState(null);
-  const [error, setError] = useState(null); // ✅ added
+  const [error, setError] = useState(null);
 
   const [form, setForm] = useState({
     domain: "",
@@ -25,16 +25,18 @@ export default function Sites() {
       setLoading(true);
       setError(null);
 
-const data = await adminFetch("/admin/sites");
+      const data = await adminFetch("/admin/sites");
 
-// 🔒 Defensive parsing (supports all backend shapes)
-if (Array.isArray(data)) {
-  setSites(data);
-} else if (data?.sites && Array.isArray(data.sites)) {
-  setSites(data.sites);
-} else {
-  console.warn("Unexpected /admin/sites response:", data);
-  setSites([]);
+      // 🔒 Defensive parsing (supports all backend shapes)
+      if (Array.isArray(data)) {
+        setSites(data);
+      } else if (data?.sites && Array.isArray(data.sites)) {
+        setSites(data.sites);
+      } else {
+        console.warn("Unexpected /admin/sites response:", data);
+        setSites([]);
+      } // ✅ MISSING BRACE FIXED HERE
+
     } catch (e) {
       console.error("Failed to load sites", e);
       setError("Failed to load sites");
@@ -84,7 +86,6 @@ if (Array.isArray(data)) {
       setError(null);
 
       if (editingSite) {
-        // UPDATE EXISTING SITE
         await adminFetch(`/admin/sites/${editingSite.id}`, {
           method: "PUT",
           body: JSON.stringify({
@@ -94,7 +95,6 @@ if (Array.isArray(data)) {
           })
         });
       } else {
-        // CREATE NEW SITE
         const cleanDomain = form.domain
           .replace(/^https?:\/\//, "")
           .replace(/\/$/, "")
@@ -102,7 +102,6 @@ if (Array.isArray(data)) {
           .trim();
 
         const payload = {
-          // ✅ backend-compatible payload
           name: cleanDomain.split(".")[0],
           domain: cleanDomain,
           plan: form.plan,
@@ -116,13 +115,11 @@ if (Array.isArray(data)) {
         });
       }
 
-      // ✅ reload sites AFTER save
       await loadSites();
-
       setShowModal(false);
+
     } catch (e) {
       console.error("Save site failed", e);
-
       if (e?.message === "site_already_exists") {
         setError("Site already exists");
       } else {
@@ -240,7 +237,6 @@ if (Array.isArray(data)) {
           </div>
         )}
 
-        {/* MODAL */}
         {showModal && (
           <div style={styles.modalOverlay}>
             <div style={styles.modal}>
