@@ -60,3 +60,24 @@ export async function adminFetch(path, options = {}) {
 
   return data;
 }
+
+/* =========================
+   🆕 CLIENT AI SETUP HELPERS (ADDED)
+========================= */
+
+export function saveSiteSetup(siteId, answers) {
+  return adminFetch(`/admin/sites/${siteId}/setup`, {
+    method: "POST",
+    body: JSON.stringify({ answers })
+  });
+}
+
+export function uploadSiteDocs(siteId, files) {
+  const formData = new FormData();
+  files.forEach(file => formData.append("files", file));
+
+  return adminFetch(`/admin/sites/${siteId}/setup/upload`, {
+    method: "POST",
+    body: formData
+  });
+}
