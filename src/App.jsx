@@ -7,6 +7,7 @@ import AiControls from "./pages/AiControls";
 import Knowledge from "./pages/Knowledge";
 import Settings from "./pages/Settings";
 import Conversations from "./pages/Conversations";
+import ClientAiSetup from "./pages/ClientAiSetup";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AdminProvider } from "./context/AdminContext";
@@ -16,69 +17,28 @@ export default function App() {
     <BrowserRouter>
       <AdminProvider>
         <Routes>
-          {/* ================= PUBLIC ================= */}
+          {/* PUBLIC */}
           <Route path="/login" element={<Login />} />
 
-          {/* ================= PROTECTED ================= */}
+          {/* PROTECTED */}
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/sites" element={<ProtectedRoute><Sites /></ProtectedRoute>} />
+
+          {/* 🆕 CLIENT AI SETUP */}
           <Route
-            path="/dashboard"
+            path="/sites/:siteId/ai-setup"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <ClientAiSetup />
               </ProtectedRoute>
             }
           />
 
-          <Route
-            path="/sites"
-            element={
-              <ProtectedRoute>
-                <Sites />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/ai-controls" element={<ProtectedRoute><AiControls /></ProtectedRoute>} />
+          <Route path="/conversations" element={<ProtectedRoute><Conversations /></ProtectedRoute>} />
+          <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
 
-          {/* STEP 1 — GLOBAL SETTINGS */}
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* STEP 2 — PER-SITE AI CONTROLS */}
-          <Route
-            path="/ai-controls"
-            element={
-              <ProtectedRoute>
-                <AiControls />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* STEP 3 — CONVERSATION VIEWER */}
-          <Route
-            path="/conversations"
-            element={
-              <ProtectedRoute>
-                <Conversations />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* STEP 3 — KNOWLEDGE VIEWER */}
-          <Route
-            path="/knowledge"
-            element={
-              <ProtectedRoute>
-                <Knowledge />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* ================= DEFAULT ================= */}
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
       </AdminProvider>
