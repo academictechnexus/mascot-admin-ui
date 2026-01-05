@@ -62,22 +62,59 @@ export async function adminFetch(path, options = {}) {
 }
 
 /* =========================
-   🆕 CLIENT AI SETUP HELPERS (ADDED)
+   🆕 CLIENT SETUP (PUBLIC APIs)
+   No auth, token-based
 ========================= */
 
-export function saveSiteSetup(siteId, answers) {
-  return adminFetch(`/admin/sites/${siteId}/setup`, {
-    method: "POST",
-    body: JSON.stringify({ answers })
-  });
+/**
+ * Fetch client setup info using magic token
+ */
+export async function getClientSetupInfo(token) {
+  const res = await fetch(`${API_BASE}/client-setup/${token}`);
+  if (!res.ok) {
+    throw new Error("invalid_token");
+  }
+  return res.json();
 }
 
-export function uploadSiteDocs(siteId, files) {
+/**
+ * Save client setup answers
+ */
+export async function saveClientSetup(token, answers) {
+  const res = await fetch(
+    `${API_BASE}/client-setup/${token}/setup`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers })
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error("setup_save_failed");
+  }
+
+  return res.json();
+}
+
+/**
+ * Upload client documents (max 3)
+ */
+export async function uploadClientDocs(token, files) {
   const formData = new FormData();
   files.forEach(file => formData.append("files", file));
 
-  return adminFetch(`/admin/sites/${siteId}/setup/upload`, {
-    method: "POST",
-    body: formData
-  });
+  const res = await fetch(
+    `${API_BASE}/client-setup/${token}/upload`,
+    {
+      method: "POST",
+      body: formData
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error("upload_failed");
+  }
+
+  return res.json();
 }
