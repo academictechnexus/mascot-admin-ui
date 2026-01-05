@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import { adminFetch } from "../api/adminApi";
 
 export default function Sites() {
+  const navigate = useNavigate();
+
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -27,7 +30,6 @@ export default function Sites() {
 
       const data = await adminFetch("/admin/sites");
 
-      // 🔒 Defensive parsing (supports all backend shapes)
       if (Array.isArray(data)) {
         setSites(data);
       } else if (data?.sites && Array.isArray(data.sites)) {
@@ -35,8 +37,7 @@ export default function Sites() {
       } else {
         console.warn("Unexpected /admin/sites response:", data);
         setSites([]);
-      } // ✅ MISSING BRACE FIXED HERE
-
+      }
     } catch (e) {
       console.error("Failed to load sites", e);
       setError("Failed to load sites");
@@ -117,7 +118,6 @@ export default function Sites() {
 
       await loadSites();
       setShowModal(false);
-
     } catch (e) {
       console.error("Save site failed", e);
       if (e?.message === "site_already_exists") {
@@ -217,11 +217,24 @@ export default function Sites() {
                       >
                         Edit
                       </button>
+
                       <button
                         style={styles.dangerBtn}
                         onClick={() => toggleStatus(site)}
                       >
                         {site.status === "active" ? "Disable" : "Enable"}
+                      </button>
+
+                      {/* =========================
+                         🆕 CLIENT AI SETUP (ADDED)
+                      ========================= */}
+                      <button
+                        style={{ ...styles.actionBtn, marginLeft: 8 }}
+                        onClick={() =>
+                          navigate(`/sites/${site.id}/ai-setup`)
+                        }
+                      >
+                        AI Setup
                       </button>
                     </td>
                   </tr>
@@ -294,14 +307,13 @@ export default function Sites() {
 }
 
 /* =========================
-   STYLES
+   STYLES (UNCHANGED)
 ========================= */
 const styles = {
   container: { display: "flex", flexDirection: "column", gap: 20 },
   header: { display: "flex", justifyContent: "space-between" },
   title: { margin: 0 },
   subtitle: { color: "#64748b" },
-
   primaryBtn: {
     padding: "8px 14px",
     background: "#4f46e5",
@@ -310,36 +322,29 @@ const styles = {
     border: "none",
     cursor: "pointer"
   },
-
   tableWrap: {
     background: "#fff",
     borderRadius: 8,
     border: "1px solid #e5e7eb"
   },
-
   table: { width: "100%", borderCollapse: "collapse" },
-
   badge: {
     padding: "4px 10px",
     borderRadius: 999,
     fontSize: 12
   },
-
   active: { background: "#dcfce7", color: "#166534" },
   disabled: { background: "#fee2e2", color: "#991b1b" },
-
   actionBtn: {
     marginRight: 8,
     padding: "6px 10px"
   },
-
   dangerBtn: {
     padding: "6px 10px",
     background: "#fee2e2",
     color: "#991b1b",
     border: "1px solid #fecaca"
   },
-
   modalOverlay: {
     position: "fixed",
     inset: 0,
@@ -348,7 +353,6 @@ const styles = {
     alignItems: "center",
     justifyContent: "center"
   },
-
   modal: {
     background: "#fff",
     padding: 24,
@@ -358,14 +362,12 @@ const styles = {
     flexDirection: "column",
     gap: 10
   },
-
   modalActions: {
     display: "flex",
     justifyContent: "flex-end",
     gap: 10,
     marginTop: 10
   },
-
   card: {
     padding: 20,
     background: "#fff",
