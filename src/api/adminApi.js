@@ -1,30 +1,7 @@
 // src/api/adminApi.js
-// FINAL STABLE Admin API layer — ARRAY SAFE, PROD SAFE
+// FINAL — production-safe, no env dependency
 
-const API_BASE = import.meta.env.VITE_ADMIN_API;
-
-if (!API_BASE) {
-  console.error("❌ VITE_ADMIN_API is not configured");
-}
-
-/* =========================
-   HELPERS
-========================= */
-function safeJson(text) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-}
-
-function getToken() {
-  return localStorage.getItem("admin_token");
-}
-
-function clearToken() {
-  localStorage.removeItem("admin_token");
-}
+const API_BASE = "https://mascot.academictechnexus.com";
 
 /* =========================
    ADMIN LOGIN
@@ -36,11 +13,10 @@ export async function adminLogin(username, password) {
     body: JSON.stringify({ username, password })
   });
 
-  const text = await res.text();
-  const data = safeJson(text);
+  const data = await res.json();
 
-  if (!res.ok || !data?.token) {
-    throw new Error(data?.error || "login_failed");
+  if (!res.ok || !data.token) {
+    throw new Error(data.error || "login_failed");
   }
 
   localStorage.setItem("admin_token", data.token);
@@ -48,41 +24,39 @@ export async function adminLogin(username, password) {
 }
 
 /* =========================
-   AUTH FETCH (CRITICAL FIX)
+   AUTH FETCH (STABLE)
 ========================= */
 export async function adminFetch(path, options = {}) {
-  const token = getToken();
+  const token = localStorage.getItem("admin_token");
   if (!token) throw new Error("unauthorized");
 
   const res = await fetch(`${API_BASE}${path}`, {
     method: options.method || "GET",
-    ...options,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(options.headers || {})
-    }
+      Authorization: `Bearer ${token}`
+    },
+    body: options.body
   });
 
   const text = await res.text();
-  const data = safeJson(text);
 
-  // 🔒 Auth failure
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    console.error("Non-JSON response:", text);
+    throw new Error("invalid_response");
+  }
+
   if (res.status === 401) {
-    clearToken();
+    localStorage.removeItem("admin_token");
     throw new Error("unauthorized");
   }
 
-  // ✅ KEY FIX: backend may return ARRAY directly
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  // ❌ Backend explicit error
   if (!res.ok) {
-    throw new Error(data?.error || "request_failed");
+    throw new Error(data.error || "request_failed");
   }
 
-  // ✅ Normal object response
   return data;
 }
