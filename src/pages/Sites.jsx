@@ -25,10 +25,16 @@ export default function Sites() {
       setLoading(true);
       setError(null);
 
-      const data = await adminFetch("/admin/sites");
+const data = await adminFetch("/admin/sites");
 
-      // Defensive: ensure array
-      setSites(Array.isArray(data) ? data : []);
+// 🔒 Defensive parsing (supports all backend shapes)
+if (Array.isArray(data)) {
+  setSites(data);
+} else if (data?.sites && Array.isArray(data.sites)) {
+  setSites(data.sites);
+} else {
+  console.warn("Unexpected /admin/sites response:", data);
+  setSites([]);
     } catch (e) {
       console.error("Failed to load sites", e);
       setError("Failed to load sites");
