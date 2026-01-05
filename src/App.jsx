@@ -9,9 +9,9 @@ import Settings from "./pages/Settings";
 import Conversations from "./pages/Conversations";
 
 /* =========================
-   🆕 CLIENT AI SETUP (ADDED)
+   🆕 CLIENT SETUP (PUBLIC)
 ========================= */
-import ClientAiSetup from "./pages/ClientAiSetup";
+import ClientSetupPublic from "./pages/ClientSetupPublic";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AdminProvider } from "./context/AdminContext";
@@ -83,17 +83,13 @@ export default function App() {
             }
           />
 
-          /* =========================
-             🆕 CLIENT AI SETUP ROUTE (ADDED)
-             Client-specific onboarding wizard
-          ========================= */
+          {/* =========================
+             🆕 CLIENT SETUP (PUBLIC, NO AUTH)
+             Used by clients via magic link
+          ========================= */}
           <Route
-            path="/sites/:siteId/ai-setup"
-            element={
-              <ProtectedRoute>
-                <ClientAiSetup />
-              </ProtectedRoute>
-            }
+            path="/client-setup/:token"
+            element={<ClientSetupPublic />}
           />
 
           {/* ================= DEFAULT ================= */}
