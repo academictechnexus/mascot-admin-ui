@@ -1,5 +1,5 @@
 // src/api/adminApi.js
-// Robust Admin API layer — SAFE, DEFENSIVE, NON-BREAKING
+// FINAL STABLE Admin API layer — ARRAY SAFE, PROD SAFE
 
 const API_BASE = import.meta.env.VITE_ADMIN_API;
 
@@ -8,14 +8,12 @@ if (!API_BASE) {
 }
 
 /* =========================
-   INTERNAL HELPERS
+   HELPERS
 ========================= */
-function safeJsonParse(text) {
-  if (!text) return null;
+function safeJson(text) {
   try {
     return JSON.parse(text);
   } catch {
-    console.error("❌ Failed to parse JSON:", text);
     return null;
   }
 }
@@ -24,7 +22,7 @@ function getToken() {
   return localStorage.getItem("admin_token");
 }
 
-function clearSession() {
+function clearToken() {
   localStorage.removeItem("admin_token");
 }
 
@@ -39,31 +37,25 @@ export async function adminLogin(username, password) {
   });
 
   const text = await res.text();
-  const data = safeJsonParse(text);
+  const data = safeJson(text);
 
-  if (!res.ok || !data?.success || !data?.token) {
-    throw new Error(data?.error || data?.message || "login_failed");
+  if (!res.ok || !data?.token) {
+    throw new Error(data?.error || "login_failed");
   }
 
-  // 🔐 persist token
   localStorage.setItem("admin_token", data.token);
-
-  return data; // { success, token, admin }
+  return data;
 }
 
 /* =========================
-   AUTHENTICATED FETCH
+   AUTH FETCH (CRITICAL FIX)
 ========================= */
 export async function adminFetch(path, options = {}) {
   const token = getToken();
-
-  if (!token) {
-    throw new Error("unauthorized");
-  }
+  if (!token) throw new Error("unauthorized");
 
   const res = await fetch(`${API_BASE}${path}`, {
     method: options.method || "GET",
-    credentials: "include",
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -73,47 +65,24 @@ export async function adminFetch(path, options = {}) {
   });
 
   const text = await res.text();
-  const data = safeJsonParse(text);
+  const data = safeJson(text);
 
-  // 🔒 auth expired / invalid
+  // 🔒 Auth failure
   if (res.status === 401) {
-    clearSession();
+    clearToken();
     throw new Error("unauthorized");
   }
 
-  // ❌ server-side error
-  if (!res.ok) {
-    const err = new Error(data?.error || "request_failed");
-    err.data = data;
-    throw err;
+  // ✅ KEY FIX: backend may return ARRAY directly
+  if (Array.isArray(data)) {
+    return data;
   }
 
-  // ✅ IMPORTANT: always return parsed body
+  // ❌ Backend explicit error
+  if (!res.ok) {
+    throw new Error(data?.error || "request_failed");
+  }
+
+  // ✅ Normal object response
   return data;
 }
-
-/* =========================
-   OPTIONAL HELPERS (SAFE)
-   (Do not break existing code)
-========================= */
-
-// Explicit helpers (can be used later if needed)
-export const AdminAPI = {
-  getSites: () => adminFetch("/admin/sites"),
-  createSite: payload =>
-    adminFetch("/admin/sites", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    }),
-  updateSite: (id, payload) =>
-    adminFetch(`/admin/sites/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(payload)
-    }),
-  getSettings: () => adminFetch("/admin/settings"),
-  updateSettings: payload =>
-    adminFetch("/admin/settings", {
-      method: "PUT",
-      body: JSON.stringify(payload)
-    })
-};
